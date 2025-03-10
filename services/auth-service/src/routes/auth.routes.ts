@@ -2,8 +2,10 @@ import { Router } from 'express'
 
 const router = Router()
 
-router.post('/login', (req, res) => {
-    res.status(200).json({ message: 'Login successful' })
+router.get('/login', (req, res) => {
+    res.status(200).json({
+        message: 'Login successful 1335',
+    })
 })
 
 router.post('/register', (req, res) => {
