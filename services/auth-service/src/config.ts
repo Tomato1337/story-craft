@@ -1,6 +1,9 @@
 interface Config {
     port: number
     nodeEnv: string
+    jwtSecret: string
+    jwtAccessTokenExpiresIn: number
+    jwtRefreshTokenExpiresIn: number
     logLevel: string
     database: {
         url: string
@@ -12,17 +15,14 @@ const getConfig = (): Config => {
         port: getEnvNumber('PORT', 3001),
         nodeEnv: getEnvString('NODE_ENV', 'dev'),
         logLevel: getEnvString('LOG_LEVEL', 'info'),
+        jwtAccessTokenExpiresIn: getEnvNumber('JWT_ACCESS_EXPIRES', 15 * 60),
+        jwtRefreshTokenExpiresIn: getEnvNumber(
+            'JWT_REFRESH_EXPIRES',
+            7 * 24 * 60 * 60
+        ),
+        jwtSecret: getEnvString('JWT_SECRET'),
         database: {
-            url: getEnvString(
-                'DATABASE_URL',
-                `postgresql://${getEnvString(
-                    'DB_USER',
-                    'storycraft_user'
-                )}:${getEnvString(
-                    'DB_PASSWORD',
-                    'secure_password'
-                )}@localhost:5432/storycraft_auth`
-            ),
+            url: getEnvString('DATABASE_URL'),
         },
     }
 }

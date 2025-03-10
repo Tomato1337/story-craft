@@ -1,4 +1,4 @@
-import { ExpressServer } from './server'
+import ExpressServer from './server'
 import config from './config'
 
 export const app = new ExpressServer().app

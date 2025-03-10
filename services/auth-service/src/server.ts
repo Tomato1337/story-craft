@@ -7,8 +7,9 @@ import methodOverride from 'method-override'
 import 'dotenv/config'
 import config from './config'
 import routes from './routes'
+import { errorHandler } from './middlewares'
 
-export class ExpressServer {
+class ExpressServer {
     public app: express.Application
 
     constructor() {
@@ -28,12 +29,15 @@ export class ExpressServer {
     }
 
     public routes() {
-        // Базовый путь API
         this.app.use('/api', routes)
 
-        // Обработка 404 ошибок
         this.app.use('*', (req, res) => {
             res.status(404).json({ message: 'Route not found' })
         })
+
+        // ??? Typescript почему-то не понимает, что это middleware express для обработки ошибок
+        this.app.use(errorHandler as any as express.ErrorRequestHandler)
     }
 }
+
+export default ExpressServer

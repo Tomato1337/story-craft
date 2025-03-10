@@ -11,6 +11,7 @@ export default [
     {
         rules: {
             'no-var': 'off',
+            '@typescript-eslint/no-namespace': 'off',
         },
     },
 ]
