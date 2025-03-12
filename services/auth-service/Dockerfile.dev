@@ -9,4 +9,4 @@ COPY . .
 
 RUN npx prisma generate
 
-CMD ["npm", "run", "dev"]
+CMD ["/bin/sh", "./startup-dev.sh"]

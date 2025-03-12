@@ -19,5 +19,10 @@ RUN npm ci --production
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/startup-prod.sh ./startup-prod.sh
 
-CMD ["node", "./dist/index.js"]
+RUN chmod +x ./startup-prod.sh
+
+COPY --from=builder /app/prisma ./prisma
+
+CMD ["/bin/sh", "./startup-prod.sh"]
