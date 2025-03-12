@@ -1,0 +1,30 @@
+version: '3.8'
+# !!! Сервисы называем с суффиксом -dev
+services:
+  auth-service-dev:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./services/auth-service:/app
+      - /app/node_modules
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+    environment:
+      - PORT=${AUTH_SERVICE_PORT}
+      - NODE_ENV=dev
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/storycraft_auth
+    develop:
+      watch:
+        - action: sync
+          path: ./services/auth-service
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./services/auth-service/package.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
