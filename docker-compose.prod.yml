@@ -1,7 +1,33 @@
 version: '3.8'
-
+# !!! Для внутренних сервисов добавляем сеть backend
+networks:
+  frontend:
+  backend:
+    internal: true
 services:
-  auth-service-prod:
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile.prod
+    ports:
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    environment:
+      - PORT=${API_GATEWAY_PORT}
+      - NODE_ENV=prod
+      - PORT_AUTH_SERVICE=${AUTH_SERVICE_PORT}
+      - PORT_STORY_SERVICE=${STORY_SERVICE_PORT}
+      - PORT_USER_SERVICE=${USER_SERVICE_PORT}
+      - PORT_MEDIA_SERVICE=${MEDIA_SERVICE_PORT}
+      - PORT_SOCIAL_SERVICE=${SOCIAL_SERVICE_PORT}
+      - PORT_NOTIFICATION_SERVICE=${NOTIFICATION_SERVICE_PORT}
+    depends_on:
+      - auth-service
+    env_file:
+      - .env
+    networks:
+      - frontend
+      - backend
+  auth-service:
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile.prod
@@ -16,3 +42,5 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    networks:
+      - backend

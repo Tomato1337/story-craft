@@ -1,13 +1,53 @@
 version: '3.8'
 # !!! Сервисы называем с суффиксом -dev
+# !!! Для внутренних сервисов добавляем сеть backend
+networks:
+  frontend:
+  backend:
+    internal: true
 services:
+  api-gateway-dev:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile.dev
+    # volumes:
+    #   - ./services/api-gateway:/app
+    #   - /app/node_modules
+    ports:
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+    environment:
+      - PORT=${API_GATEWAY_PORT}
+      - NODE_ENV=dev
+      - PORT_AUTH_SERVICE=${AUTH_SERVICE_PORT}
+      - PORT_STORY_SERVICE=${STORY_SERVICE_PORT}
+      - PORT_USER_SERVICE=${USER_SERVICE_PORT}
+      - PORT_MEDIA_SERVICE=${MEDIA_SERVICE_PORT}
+      - PORT_SOCIAL_SERVICE=${SOCIAL_SERVICE_PORT}
+      - PORT_NOTIFICATION_SERVICE=${NOTIFICATION_SERVICE_PORT}
+    develop:
+      watch:
+        - action: sync
+          path: ./services/api-gateway
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./services/api-gateway/package.json
+    depends_on:
+      - auth-service-dev
+    env_file:
+      - .env
+    networks:
+      - frontend
+      - backend
+
   auth-service-dev:
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile.dev
-    volumes:
-      - ./services/auth-service:/app
-      - /app/node_modules
+    # volumes:
+    #   - ./services/auth-service:/app
+    #   - /app/node_modules
     ports:
       - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
     environment:
@@ -28,3 +68,5 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    networks:
+      - backend

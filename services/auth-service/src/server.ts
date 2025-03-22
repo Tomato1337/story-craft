@@ -29,7 +29,7 @@ class ExpressServer {
     }
 
     public routes() {
-        this.app.use('/api', routes)
+        this.app.use('/', routes)
 
         this.app.use('*', (req, res) => {
             res.status(404).json({ message: 'Route not found' })
