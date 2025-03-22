@@ -38,13 +38,11 @@ export class AuthService {
                 )
             }
 
-            // Хешируем пароль
             const hashedPassword = await hashPassword(password)
             if (!hashedPassword) {
                 throw new InternalServerError('Failed to hash password')
             }
 
-            // Создаем пользователя
             const user = await prisma.user.create({
                 data: {
                     email,
@@ -53,7 +51,6 @@ export class AuthService {
                 },
             })
 
-            // Создаем токены
             const accessToken = createAccessToken({
                 userId: user.id,
                 email: user.email,
@@ -96,7 +93,6 @@ export class AuthService {
         const { email, password } = credentials
 
         try {
-            // Ищем пользователя по email
             const user = await prisma.user.findUnique({
                 where: { email },
             })
@@ -105,7 +101,6 @@ export class AuthService {
                 throw new UnauthorizedError('Invalid email or password')
             }
 
-            // Проверяем пароль
             const isPasswordValid = await comparePassword(
                 password,
                 user.password
@@ -114,7 +109,6 @@ export class AuthService {
                 throw new UnauthorizedError('Invalid email or password')
             }
 
-            // Создаем токены
             const accessToken = createAccessToken({
                 userId: user.id,
                 email: user.email,
@@ -175,17 +169,14 @@ export class AuthService {
                 throw new BadRequestError('Refresh token is required')
             }
 
-            // Верифицируем refresh token
             const payload = await verifyRefreshToken(token)
 
             if (!payload) {
                 throw new UnauthorizedError('Invalid or expired refresh token')
             }
 
-            // Отзываем старый refresh token
             await revokeRefreshToken(token, 'Token refreshed')
 
-            // Создаем новые токены
             const user = await prisma.user.findUnique({
                 where: { id: payload.userId },
             })

@@ -9,4 +9,4 @@ COPY . .
 
 RUN npx prisma generate
 
-CMD ["/bin/sh", "./startup-dev.sh"]
+CMD ["/bin/sh", "-c", "npm install && npx prisma migrate deploy && npm run dev"]

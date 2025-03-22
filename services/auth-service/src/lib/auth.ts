@@ -80,13 +80,11 @@ export const verifyAccessToken = (token: string): TokenPayload | null => {
 
 export const verifyRefreshToken = async (token: string) => {
     try {
-        // Проверяем токен в базе данных
         const refreshToken = await prisma.refreshToken.findUnique({
             where: { token },
             include: { user: true },
         })
 
-        // Проверяем, существует ли токен и не отозван ли он
         if (!refreshToken) {
             throw new UnauthorizedError('Refresh token not found')
         }
@@ -95,7 +93,6 @@ export const verifyRefreshToken = async (token: string) => {
             throw new UnauthorizedError('Refresh token has been revoked')
         }
 
-        // Проверяем срок действия
         if (new Date() > refreshToken.expiresAt) {
             throw new UnauthorizedError('Refresh token has expired')
         }
