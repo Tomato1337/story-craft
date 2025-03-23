@@ -3,17 +3,19 @@ import plugins from './plugins'
 import { env } from './config'
 import closeWithGrace from 'close-with-grace'
 
-const app = fastify({
+const settingsFastify = {
     logger: {
         level: env.LOG_LEVEL,
-        ...(env.NODE_ENV === 'prod' && {
+        ...(env.NODE_ENV === 'dev' && {
             transport: {
                 target: 'pino-pretty',
             },
         }),
     },
     trustProxy: true,
-})
+}
+
+const app = fastify(settingsFastify)
 
 const start = async () => {
     try {
