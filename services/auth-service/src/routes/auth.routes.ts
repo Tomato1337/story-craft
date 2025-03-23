@@ -39,6 +39,10 @@ router.post(
     }
 )
 
+router.get('/is-auth', protectRoute, (req: Request, res: Response) => {
+    res.status(200).json({ message: 'Authenticated', user: req.user })
+})
+
 router.post(
     '/register',
     validateRequest(registerSchema),
