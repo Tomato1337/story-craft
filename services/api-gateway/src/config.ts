@@ -8,6 +8,7 @@ const envSchema = z.object({
     PORT_USER_SERVICE: z.string().default('3003').transform(Number),
     PORT_MEDIA_SERVICE: z.string().default('3004').transform(Number),
     PORT_SOCIAL_SERVICE: z.string().default('3005').transform(Number),
+    JWT_SECRET: z.string().default('supersecret'),
     PORT_NOTIFICATION_SERVICE: z.string().default('3006').transform(Number),
     HOST: z.string().default('0.0.0.0'),
     LOG_LEVEL: z
