@@ -10,7 +10,7 @@ import (
 func SetupRouter(db *gorm.DB) *gin.Engine {
 	r := gin.Default()
 
-	profiles := r.Group("/profiles")
+	profiles := r.Group("/")
 	{
 		profileHandler := handlers.NewProfileHandler(db)
 		profiles.POST("/", profileHandler.CreateProfile)

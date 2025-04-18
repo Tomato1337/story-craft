@@ -66,12 +66,6 @@ func (h ProfileHandler) CreateProfile(c *gin.Context) {
 func (h ProfileHandler) GetProfile(c *gin.Context) {
 	var input models.InputProfile
 
-	requestUser := c.Request.Header.Get("x-user-object")
-	if err := json.Unmarshal([]byte(requestUser), &input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка в формате JSON: проверьте правильность данных"})
-		return
-	}
-
 	if input.Username == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка: не передали username"})
 	}
