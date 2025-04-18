@@ -48,11 +48,12 @@ router.post(
     validateRequest(registerSchema),
     async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { email, password, username } = req.body
+            const { email, password, username, avatarUrl } = req.body
             const result = await authService.register({
                 email,
                 password,
                 username,
+                avatarUrl,
             })
 
             res.status(201).json({
