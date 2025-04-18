@@ -21,6 +21,11 @@ func SetupDatabase() (*gorm.DB, error) {
 		return nil, err
 	}
 
+	// enable uuid extension for generating UUIDs
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`).Error; err != nil {
+		return nil, err
+	}
+
 	// Миграция схемы
 	if err := db.AutoMigrate(&models.Profile{}); err != nil {
 		return nil, err

@@ -39,5 +39,6 @@ create_db() {
 create_db "storycraft_auth"
 create_db "storycraft_story"
 create_db "storycraft_user" 
+create_db "$DB_NAME"
 
 echo "Database initialization script finished for user $POSTGRES_USER."
