@@ -1,7 +1,7 @@
 package router
 
 import (
-	"userService/handlers"
+	"github.com/monst/story-craft/services/user-profile-service/handlers"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

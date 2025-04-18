@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"userService/models"
+	"github.com/monst/story-craft/services/user-profile-service/models"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"

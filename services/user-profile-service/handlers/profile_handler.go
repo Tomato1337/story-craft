@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"userService/models"
+	"github.com/monst/story-craft/services/user-profile-service/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

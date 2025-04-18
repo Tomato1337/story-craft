@@ -1,4 +1,4 @@
-module userService
+module github.com/monst/story-craft/services/user-profile-service
 
 go 1.23.1
 
