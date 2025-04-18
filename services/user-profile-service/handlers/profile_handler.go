@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -21,22 +22,16 @@ func NewProfileHandler(db *gorm.DB) *ProfileHandler {
 
 // Создание нового профиля
 func (h ProfileHandler) CreateProfile(c *gin.Context) {
-	var input models.Profile
-	if err := c.ShouldBindJSON(&input); err != nil {
+	var input models.InputProfile
+
+	requestUser := c.Request.Header.Get("x-user-object")
+	if err := json.Unmarshal([]byte(requestUser), &input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка в формате JSON: проверьте правильность данных"})
 		return
 	}
 
-	// Проверка обязательных полей
-	if input.UserID == "" || input.Username == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Обязательные поля UserID и Username должны быть заполнены"})
-		return
-	}
-
-	// Проверка валидности UUID
-	if _, err := uuid.Parse(input.UserID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Некорректный формат UserID: должен быть действительный UUID"})
-		return
+	if input.Username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка: не передали username"})
 	}
 
 	// Проверка на существование пользователя с таким username
@@ -49,10 +44,15 @@ func (h ProfileHandler) CreateProfile(c *gin.Context) {
 		return
 	}
 
-	// TODO
-	// Проверка наличия пользователя в базе данных Auth сервиса
+	profile := models.Profile{
+		UserID:    input.UserID,
+		Username:  input.Username,
+		Email:     input.Email,
+		AvatarURL: input.AvatarURL,
+		Role:      input.Role,
+	}
 
-	if err := h.db.Create(&input).Error; err != nil {
+	if err := h.db.Create(&profile).Error; err != nil {
 		if strings.Contains(err.Error(), "unique constraint") {
 			c.JSON(http.StatusConflict, gin.H{"error": "Пользователь с такими данными уже существует"})
 		} else {
@@ -66,6 +66,24 @@ func (h ProfileHandler) CreateProfile(c *gin.Context) {
 
 // Получение профиля по user_id
 func (h ProfileHandler) GetProfile(c *gin.Context) {
+	var input models.InputProfile
+
+	requestUser := c.Request.Header.Get("x-user-object")
+	if err := json.Unmarshal([]byte(requestUser), &input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка в формате JSON: проверьте правильность данных"})
+		return
+	}
+
+	if input.Username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка: не передали username"})
+	}
+
+	// Проверка обязательных полей
+	if input.UserID == "" || input.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Обязательные поля UserID и Username должны быть заполнены"})
+		return
+	}
+
 	userID := c.Param("user_id")
 
 	// Проверка валидности UUID
@@ -74,11 +92,12 @@ func (h ProfileHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	// TODO
-	// Проверка наличия пользователя в базе данных Auth сервиса
+	if userID != input.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id в URL и в теле запроса не совпадают"})
+		return
+	}
 
 	var profile models.Profile
-
 	if err := h.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Профиль не найден"})
@@ -93,6 +112,8 @@ func (h ProfileHandler) GetProfile(c *gin.Context) {
 
 // Обновление профиля
 func (h ProfileHandler) UpdateProfile(c *gin.Context) {
+	// TODO договориться о формате передачи данных
+
 	userID := c.Param("user_id")
 
 	// Проверка валидности UUID
@@ -102,6 +123,7 @@ func (h ProfileHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	var input struct {
+		UserID      string                  `json:"user_id"`
 		Username    *string                 `json:"username"`
 		DisplayName *string                 `json:"display_name"`
 		Bio         *string                 `json:"bio"`
@@ -114,15 +136,17 @@ func (h ProfileHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	if input.UserID != userID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id в URL и в теле запроса не совпадают"})
+		return
+	}
+
 	// Проверка на пустой запрос обновления
 	if input.Username == nil && input.DisplayName == nil &&
 		input.Bio == nil && input.AvatarURL == nil && input.Preferences == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Необходимо указать хотя бы одно поле для обновления"})
 		return
 	}
-
-	// TODO
-	// Проверка наличия пользователя в базе данных Auth сервиса
 
 	var profile models.Profile
 	if err := h.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
@@ -185,6 +209,22 @@ func (h ProfileHandler) UpdateProfile(c *gin.Context) {
 
 // Удаление профиля
 func (h ProfileHandler) DeleteProfile(c *gin.Context) {
+	if c.Request.Header.Get("x-user-authenticated") != "true" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Пользователь не авторизован"})
+	}
+
+	var input models.InputProfile
+	input.UserID = c.Request.Header.Get("x-user-id")
+	input.Email = c.Request.Header.Get("x-user-email")
+	input.Role = c.Request.Header.Get("x-user-role")
+
+	// Проверка обязательных полей
+	if input.UserID == "" || input.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Обязательные поля UserID и Username должны быть заполнены"})
+		return
+	}
+
+	// Получаем user_id из URL
 	userID := c.Param("user_id")
 
 	// Проверка валидности UUID
@@ -193,8 +233,10 @@ func (h ProfileHandler) DeleteProfile(c *gin.Context) {
 		return
 	}
 
-	// TODO
-	// Проверка наличия пользователя в базе данных Auth сервиса
+	if userID != input.UserID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id в URL и в теле запроса не совпадают"})
+		return
+	}
 
 	// Проверка существования профиля перед удалением
 	var profile models.Profile

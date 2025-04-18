@@ -24,15 +24,15 @@ services:
       - PORT_MEDIA_SERVICE=${MEDIA_SERVICE_PORT}
       - PORT_SOCIAL_SERVICE=${SOCIAL_SERVICE_PORT}
       - PORT_NOTIFICATION_SERVICE=${NOTIFICATION_SERVICE_PORT}
-    develop:
-      watch:
-        - action: sync
-          path: ./services/api-gateway
-          target: /app
-          ignore:
-            - node_modules/
-        - action: rebuild
-          path: ./services/api-gateway/package.json
+    # develop:
+    #   watch:
+    #     - action: sync
+    #       path: ./services/api-gateway
+    #       target: /app
+    #       ignore:
+    #         - node_modules/
+    #     - action: rebuild
+    #       path: ./services/api-gateway/package.json
     depends_on:
       - auth-service-dev
     env_file:
@@ -54,15 +54,46 @@ services:
       - PORT=${AUTH_SERVICE_PORT}
       - NODE_ENV=dev
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/storycraft_auth
-    develop:
-      watch:
-        - action: sync
-          path: ./services/auth-service
-          target: /app
-          ignore:
-            - node_modules/
-        - action: rebuild
-          path: ./services/auth-service/package.json
+    # develop:
+    #   watch:
+    #     - action: sync
+    #       path: ./services/auth-service
+    #       target: /app
+    #       ignore:
+    #         - node_modules/
+    #     - action: rebuild
+    #       path: ./services/auth-service/package.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - backend
+  
+
+  user-profile-service-dev:
+    build:
+      context: ./services/user-profile-service
+      dockerfile: Dockerfile
+    # volumes:
+    #   - ./services/auth-service:/app
+    #   - /app/node_modules
+    ports:
+      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    # develop:
+    #   watch:
+    #     - action: sync
+    #       path: ./services/user-profile-service
+    #       target: /app
+    #     - action: rebuild
+    #       path: ./services/user-profile-service/go.mod
     depends_on:
       postgres:
         condition: service_healthy
