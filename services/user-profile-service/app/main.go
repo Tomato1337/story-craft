@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"userService/router"
-	"userService/utils"
+	"github.com/monst/story-craft/services/user-profile-service/router"
+	"github.com/monst/story-craft/services/user-profile-service/utils"
 )
 
 func main() {

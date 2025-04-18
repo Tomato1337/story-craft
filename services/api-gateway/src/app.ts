@@ -3,6 +3,9 @@ import plugins from './plugins'
 import { env } from './config'
 import closeWithGrace from 'close-with-grace'
 import jwt from '@fastify/jwt'
+import fastifyCors from '@fastify/cors'
+import fastifyHelmet from '@fastify/helmet'
+import fastifyCompress from '@fastify/compress'
 
 const settingsFastify = {
     logger: {
@@ -20,6 +23,10 @@ const app = fastify(settingsFastify)
 
 const start = async () => {
     try {
+        await app.register(fastifyCors)
+        await app.register(fastifyHelmet)
+        await app.register(fastifyCompress)
+
         await app.register(jwt, {
             secret: env.JWT_SECRET,
         })

@@ -2,11 +2,13 @@ FROM golang:1.23 AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+# COPY go.mod go.sum ./
+
+# Копируем все файлы сервиса: app, router, utils и т.д.
+COPY . .
 RUN go mod download
 
-COPY ./app ./app
-
+# Сборка бинаря из папки app
 RUN go build -o main ./app
 
 FROM debian:bookworm-slim

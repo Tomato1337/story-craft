@@ -1,4 +1,4 @@
-import { TokenPayload } from './index'
+import { TokenPayload } from 'storycraft-common-types'
 
 declare global {
     namespace Express {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"userService/models"
+	"github.com/monst/story-craft/services/user-profile-service/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"

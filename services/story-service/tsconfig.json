@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "target": "ES2024", // Уровень стандартов JavaScript
+        "module": "NodeNext", // Использование стандартных ES модулей
+        "moduleResolution": "nodenext", // Разрешение модулей по алгоритму Node.js
+        "lib": ["ES2024"], // Подключаемые библиотеки
+        "outDir": "./dist", // Выходная директория для скомпилированных файлов
+        "rootDir": "./src", // Корневая директория исходных файлов
+        "esModuleInterop": true, // Поддержка импорта CommonJS модулей
+        "strict": true,
+        "forceConsistentCasingInFileNames": true, // Контроль регистра символов в путях файлов
+        "skipLibCheck": true, // Пропуск проверки типов в файлах .d.ts
+        "resolveJsonModule": true, // Разрешение импорта JSON модулей
+        "allowJs": true // Разрешение компиляции JS файлов,
+        // "allowSyntheticDefaultImports": true // Разрешение импорта модулей с экспортом по умолчанию
+    },
+    "include": ["src"],
+    "exclude": ["node_modules", "**/*.spec.ts"]
+}

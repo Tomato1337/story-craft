@@ -24,17 +24,18 @@ services:
       - PORT_MEDIA_SERVICE=${MEDIA_SERVICE_PORT}
       - PORT_SOCIAL_SERVICE=${SOCIAL_SERVICE_PORT}
       - PORT_NOTIFICATION_SERVICE=${NOTIFICATION_SERVICE_PORT}
-    # develop:
-    #   watch:
-    #     - action: sync
-    #       path: ./services/api-gateway
-    #       target: /app
-    #       ignore:
-    #         - node_modules/
-    #     - action: rebuild
-    #       path: ./services/api-gateway/package.json
+    develop:
+      watch:
+        - action: sync
+          path: ./services/api-gateway
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./services/api-gateway/package.json
     depends_on:
       - auth-service-dev
+      - story-service-dev
     env_file:
       - .env
     networks:
@@ -45,24 +46,23 @@ services:
     build:
       context: ./services/auth-service
       dockerfile: Dockerfile.dev
-    # volumes:
-    #   - ./services/auth-service:/app
-    #   - /app/node_modules
+    volumes:
+        - ./services/auth-service/prisma:/app/prisma
     ports:
       - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
     environment:
       - PORT=${AUTH_SERVICE_PORT}
       - NODE_ENV=dev
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/storycraft_auth
-    # develop:
-    #   watch:
-    #     - action: sync
-    #       path: ./services/auth-service
-    #       target: /app
-    #       ignore:
-    #         - node_modules/
-    #     - action: rebuild
-    #       path: ./services/auth-service/package.json
+    develop:
+      watch:
+        - action: sync
+          path: ./services/auth-service
+          target: /app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./services/auth-service/package.json
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,18 +82,18 @@ services:
     ports:
       - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     environment:
-      - DB_HOST=postgres
+      - DB_HOST=${POSTGRES_DB}
       - DB_PORT=5432
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
-    # develop:
-    #   watch:
-    #     - action: sync
-    #       path: ./services/user-profile-service
-    #       target: /app
-    #     - action: rebuild
-    #       path: ./services/user-profile-service/go.mod
+    develop:
+      watch:
+        - action: sync
+          path: ./services/user-profile-service
+          target: /app
+        - action: rebuild
+          path: ./services/user-profile-service/go.mod
     depends_on:
       postgres:
         condition: service_healthy
@@ -101,3 +101,32 @@ services:
       - .env
     networks:
       - backend
+  story-service-dev:
+      build:
+        context: ./services/story-service
+        dockerfile: Dockerfile.dev      
+      ports:
+        - "${STORY_SERVICE_PORT}:${STORY_SERVICE_PORT}"
+      volumes:
+        - ./services/story-service/prisma:/app/prisma
+      environment:
+        - PORT=${STORY_SERVICE_PORT}
+        - NODE_ENV=dev
+        - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/storycraft_story
+      develop:
+        watch:
+          - action: sync
+            path: ./services/story-service
+            target: /app
+            ignore:
+              - node_modules/
+              - prisma/
+          - action: rebuild
+            path: ./services/story-service/package.json
+      depends_on:
+        postgres:
+          condition: service_healthy
+      env_file:
+        - .env
+      networks:
+        - backend
