@@ -2,7 +2,7 @@ import fastifyPlugin from 'fastify-plugin'
 import httpProxy from '@fastify/http-proxy'
 import { serviceConfig, commonProxyOptions } from '../config'
 import { FastifyInstance } from 'fastify'
-import { TokenPayload } from '../types'
+import { TokenPayload } from 'storycraft-common-types'
 
 export default fastifyPlugin(async (fastify: FastifyInstance) => {
     // Добавляем заголовок x-user-object в запросы к проксируемым сервисам для аутентификации
@@ -25,14 +25,6 @@ export default fastifyPlugin(async (fastify: FastifyInstance) => {
         fastify.log.info(
             `Setting up proxy for ${serviceName} at ${config.prefix} -> ${config.upstream}`
         )
-
-        fastify.addHook('onError', (request, reply, error) => {
-            if (request.url.startsWith(config.prefix)) {
-                fastify.log.error(
-                    `Proxy error for ${serviceName}: ${error.message}`
-                )
-            }
-        })
 
         await fastify.register(httpProxy, {
             upstream: config.upstream,

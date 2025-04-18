@@ -19,4 +19,4 @@ RUN npm install --production
 
 COPY --from=builder /app/dist ./dist
 
-CMD ["node", "dist/app.js"]
+CMD ["/bin/sh", "-c", "npm run start"]
