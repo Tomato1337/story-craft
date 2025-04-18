@@ -2,6 +2,7 @@ import fastify from 'fastify'
 import plugins from './plugins'
 import { env } from './config'
 import closeWithGrace from 'close-with-grace'
+import jwt from '@fastify/jwt'
 
 const settingsFastify = {
     logger: {
@@ -19,6 +20,9 @@ const app = fastify(settingsFastify)
 
 const start = async () => {
     try {
+        await app.register(jwt, {
+            secret: env.JWT_SECRET,
+        })
         await app.register(plugins.sensible)
         await app.register(plugins.proxy)
 
