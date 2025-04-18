@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+    provider      = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-openssl-3.0.x", "windows"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum Role {
+    USER
+    AUTHOR
+    ADMIN
+}
+
+enum Phase {
+    PROPOSAL
+    VOTING
+}
+
+model Story {
+    id                 String              @id @default(uuid())
+    title              String              @db.VarChar(255)
+    description        String              @db.Text
+    coverImageUrl      String?             @db.VarChar(255)
+    authorId           String
+    isActive           Boolean             @default(true)
+    isPublic           Boolean             @default(false)
+    currentPhase       Phase               @default(PROPOSAL)
+    viewCount          Int                 @default(0)
+    proposalDeadline   DateTime?           @db.Timestamp()
+    votingDeadline     DateTime?           @db.Timestamp()
+    storyCollaborators StoryCollaborator[]
+    chapters           Chapter[]
+    genres             Genre[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Genre {
+    id   String @id @default(uuid())
+    name String @db.VarChar(255)
+
+    stories Story[]
+}
+
+model StoryCollaborator {
+    id      String @id @default(uuid())
+    storyId String
+    userId  String
+    role    Role   @default(USER)
+
+    story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Chapter {
+    id              String            @id @default(uuid())
+    title           String            @db.VarChar(255)
+    content         String            @db.Text
+    authorId        String
+    position        Int
+    isLastChapter   Boolean           @default(false)
+    storyId         String
+    chapterProposal ChapterProposal[]
+
+    story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+}
+
+model ChapterProposal {
+    id              String  @id @default(uuid())
+    title           String  @db.VarChar(255)
+    content         String  @db.Text
+    authorId        String
+    storyId         String
+    parentChapterId String
+    voteCount       Int     @default(0)
+    hasWon          Boolean @default(false)
+    votes           Vote[]
+
+    parentChapter Chapter @relation(fields: [parentChapterId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Vote {
+    id                String @id @default(uuid())
+    authorId          String
+    chapterProposalId String
+
+    chapterProposal ChapterProposal @relation(fields: [chapterProposalId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+}

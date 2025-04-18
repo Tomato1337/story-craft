@@ -10,7 +10,7 @@ services:
       context: ./services/api-gateway
       dockerfile: Dockerfile.prod
     ports:
-      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
+      - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
     environment:
       - PORT=${API_GATEWAY_PORT}
       - NODE_ENV=prod
@@ -32,11 +32,28 @@ services:
       context: ./services/auth-service
       dockerfile: Dockerfile.prod
     ports:
-      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+      - ${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}
     environment:
       - PORT=${AUTH_SERVICE_PORT}
       - NODE_ENV=prod
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/storycraft_auth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    networks:
+      - backend
+  story-service:
+    build:
+      context: ./services/story-service
+      dockerfile: Dockerfile.prod
+    ports:
+      - ${STORY_SERVICE_PORT}:${STORY_SERVICE_PORT}
+    environment:
+      - PORT=${STORY_SERVICE_PORT}
+      - NODE_ENV=prod
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/storycraft_story
     depends_on:
       postgres:
         condition: service_healthy

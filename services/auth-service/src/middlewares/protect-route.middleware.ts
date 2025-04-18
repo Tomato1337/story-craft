@@ -21,6 +21,8 @@ export const protectRoute = async (
             throw new UnauthorizedError('Invalid or expired access token')
         }
 
+        console.log(payload)
+
         req.user = payload
         next()
     } catch (error) {

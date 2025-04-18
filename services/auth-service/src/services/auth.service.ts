@@ -22,8 +22,9 @@ export class AuthService {
         email: string
         password: string
         username: string
+        avatarUrl?: string
     }) {
-        const { email, password, username } = userData
+        const { email, password, username, avatarUrl } = userData
 
         try {
             const existingUser = await prisma.user.findFirst({
@@ -47,6 +48,7 @@ export class AuthService {
                 data: {
                     email,
                     username,
+                    avatarUrl: avatarUrl,
                     password: hashedPassword,
                 },
             })
@@ -55,6 +57,8 @@ export class AuthService {
                 userId: user.id,
                 email: user.email,
                 role: user.role,
+                username: user.username,
+                avatarUrl: user.avatarUrl,
             })
 
             const refreshToken = await createRefreshToken(user.id)
