@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"github.com/monst/story-craft/services/user-profile-service/router"
 	"github.com/monst/story-craft/services/user-profile-service/utils"
 )
@@ -23,8 +24,12 @@ func main() {
 	// Инициализация роутера
 	r := router.SetupRouter(db)
 
-	// Запуск сервера
-	if err := r.Run(":8080"); err != nil {
+	// Запуск сервера на порту из env или 8080 по умолчанию
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Не удалось запустить сервер: %v", err)
 	}
 }
