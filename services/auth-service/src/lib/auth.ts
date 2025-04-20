@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { prisma } from './prisma'
 import config from '../config'
 import { InternalServerError, UnauthorizedError } from '../utils/errors'
-import { TokenPayload } from '../types'
+import { TokenPayload } from 'storycraft-common-types'
 
 export const comparePassword = async (
     password: string,
