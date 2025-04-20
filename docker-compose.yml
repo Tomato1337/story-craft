@@ -31,7 +31,7 @@ services:
       - social_network
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
-      interval: 5s
+      interval: 3600s
       timeout: 5s
       retries: 5
 
