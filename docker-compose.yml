@@ -10,7 +10,7 @@ services:
     env_file:
       - .env
     environment:
-      - DB_HOST=db
+      - DB_HOST=${DB_HOST}
     depends_on:
       - db
     networks:
