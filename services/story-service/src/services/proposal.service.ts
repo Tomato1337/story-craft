@@ -1,13 +1,19 @@
 import { prisma, Phase } from '../prisma'
+import {
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+} from '../utils/errors'
 import { chapterStoryService } from './chapter.service'
 import { collaboratorService } from './collaborator.service'
 
 // Время фаз (в мс), можно вынести в конфиг
-const PROPOSAL_DURATION = 1000 * 60 * 1
-const VOTING_DURATION = 1000 * 60 * 1
+// const PROPOSAL_DURATION = 1000 * 60 * 1
+// const VOTING_DURATION = 1000 * 60 * 1
 
 export const proposalService = {
-    async proposeChapter(
+    async createProposeChapter(
         storyId: string,
         parentChapterId: string,
         authorId: string,
@@ -20,14 +26,16 @@ export const proposalService = {
             orderBy: { position: 'desc' },
         })
         if (!lastChapter || lastChapter.id !== parentChapterId) {
-            throw new Error('Нет доступной главы для продолжения')
+            throw new BadRequestError('Нет доступной главы для продолжения')
         }
-
         // Проверка фазы и остальные проверки...
         const story = await prisma.story.findUnique({ where: { id: storyId } })
-        if (!story) throw new Error('Story not found')
+        if (!story)
+            throw new NotFoundError(`История с ID ${storyId} не найдена`)
         if (story.currentPhase !== Phase.PROPOSAL)
-            throw new Error('Not in proposal phase')
+            throw new BadRequestError(
+                'Сейчас не фаза предложений для этой истории'
+            )
 
         // Создание предложения, используя найденный parentChapterId
         const proposal = await prisma.chapterProposal.create({
@@ -36,82 +44,350 @@ export const proposalService = {
 
         // После второго предложения запускаем таймер
         const count = await prisma.chapterProposal.count({ where: { storyId } })
-        if (count === 2) {
-            const deadline = new Date(Date.now() + PROPOSAL_DURATION)
+        if (count >= 2) {
+            const deadline = new Date(Date.now() + story.proposalTime)
             await prisma.story.update({
                 where: { id: storyId },
                 data: { proposalDeadline: deadline },
             })
-            setTimeout(() => this.endProposals(storyId), PROPOSAL_DURATION)
+            setTimeout(() => this.endProposals(storyId), story.proposalTime)
         }
 
-        return proposal
+        return {
+            ...proposal,
+            createdAt: proposal.createdAt.toISOString(),
+            updatedAt: proposal.updatedAt.toISOString(),
+        }
+    },
+
+    async deleteProposal(
+        proposalId: string,
+        authorId: string,
+        storyId: string
+    ) {
+        const proposal = await prisma.chapterProposal.findUnique({
+            where: { id: proposalId, storyId },
+        })
+        if (!proposal)
+            throw new NotFoundError(`Предложение с ID ${proposalId} не найдено`)
+
+        const story = await prisma.story.findUnique({
+            where: { id: storyId },
+        })
+
+        if (!story) {
+            throw new NotFoundError(`История с ID ${storyId} не найдена`)
+        }
+
+        if (story.currentPhase !== Phase.PROPOSAL) {
+            throw new BadRequestError(
+                'Сейчас не фаза предложений для этой истории'
+            )
+        }
+
+        if (proposal.authorId !== authorId) {
+            throw new ForbiddenError(
+                'Вы не являетесь автором этого предложения'
+            )
+        }
+
+        await prisma.chapterProposal.delete({
+            where: { id: proposalId, storyId },
+        })
+
+        return { success: true }
+    },
+
+    async changeProposal(
+        proposalId: string,
+        authorId: string,
+        storyId: string,
+        title?: string,
+        content?: string
+    ) {
+        const proposal = await prisma.chapterProposal.findUnique({
+            where: { id: proposalId, storyId },
+        })
+
+        if (!proposal) {
+            throw new NotFoundError(`Предложение с ID ${proposalId} не найдено`)
+        }
+
+        const story = await prisma.story.findUnique({
+            where: { id: storyId },
+        })
+
+        if (!story) {
+            throw new NotFoundError(`История с ID ${storyId} не найдена`)
+        }
+
+        if (story.currentPhase !== Phase.PROPOSAL) {
+            throw new BadRequestError(
+                'Сейчас не фаза предложений для этой истории'
+            )
+        }
+
+        if (proposal.authorId !== authorId) {
+            throw new ForbiddenError(
+                'Вы не являетесь автором этого предложения'
+            )
+        }
+
+        const proposalAfter = await prisma.chapterProposal.update({
+            where: { id: proposalId, storyId },
+            data: { title, content },
+        })
+
+        console.log(`Proposal ${proposalId} changed by user ${authorId}`)
+
+        return {
+            ...proposalAfter,
+            createdAt: proposalAfter.createdAt.toISOString(),
+            updatedAt: proposalAfter.updatedAt.toISOString(),
+        }
+    },
+
+    async selectWinnerProposal(proposalId: string, authorId: string) {
+        const proposal = await prisma.chapterProposal.findUnique({
+            where: { id: proposalId },
+        })
+
+        if (!proposal)
+            throw new NotFoundError(`Предложение с ID ${proposalId} не найдено`)
+
+        const collaborator = await prisma.storyCollaborator.findFirst({
+            where: { storyId: proposal.storyId, userId: authorId },
+        })
+
+        if (!collaborator || collaborator.role !== 'ADMIN') {
+            throw new ForbiddenError(
+                'Вы не являетесь владельцем этой истории, выбора победителя невозможен'
+            )
+        }
+
+        await prisma.story.update({
+            where: { id: proposal.storyId },
+            data: { currentPhase: Phase.PROPOSAL, votingDeadline: null },
+        })
+
+        await prisma.chapter.updateMany({
+            where: { storyId: proposal.storyId, isLastChapter: true },
+            data: { isLastChapter: false },
+        })
+
+        await chapterStoryService.createChapter(
+            proposal.storyId,
+            {
+                title: proposal.title,
+                content: proposal.content,
+            },
+            proposal.authorId
+        )
+
+        await collaboratorService.addCollaboratorInStory(
+            proposal.storyId,
+            proposal.authorId
+        )
+
+        await prisma.chapterProposal.deleteMany({
+            where: { storyId: proposal.storyId },
+        })
     },
 
     async voteProposal(proposalId: string, authorId: string) {
         const proposal = await prisma.chapterProposal.findUnique({
             where: { id: proposalId },
         })
-        if (!proposal) throw new Error('Proposal not found')
+        if (!proposal) {
+            throw new NotFoundError(`Предложение с ID ${proposalId} не найдено`)
+        }
 
         const story = await prisma.story.findUnique({
             where: { id: proposal.storyId },
         })
-        if (!story || story.currentPhase !== Phase.VOTING)
-            throw new Error('Not in voting phase')
 
-        // Создаем голос
+        const user = await prisma.vote.findFirst({
+            where: { chapterProposalId: proposalId, authorId },
+        })
+
+        if (user)
+            throw new ConflictError('Вы уже голосовали за это предложение')
+
+        if (!story || story.currentPhase !== Phase.VOTING)
+            throw new BadRequestError(
+                'Сейчас не фаза голосования для этой истории'
+            )
+
         await prisma.vote.create({
             data: { chapterProposalId: proposalId, authorId },
         })
+
+        await prisma.chapterProposal.update({
+            where: { id: proposalId },
+            data: { voteCount: { increment: 1 } },
+        })
+
+        console.log(`User ${authorId} voted for proposal ${proposalId}`)
+
+        return { success: true }
+    },
+
+    async deleteVoteProposal(proposalId: string, authorId: string) {
+        const proposal = await prisma.chapterProposal.findUnique({
+            where: { id: proposalId, authorId },
+        })
+        if (!proposal)
+            throw new NotFoundError(`Предложение с ID ${proposalId} не найдено`)
+
+        const story = await prisma.story.findUnique({
+            where: { id: proposal.storyId },
+        })
+
+        const user = await prisma.vote.findFirst({
+            where: { chapterProposalId: proposalId, authorId },
+        })
+
+        if (!user)
+            throw new BadRequestError('Вы не голосовали за это предложение')
+
+        if (!story || story.currentPhase !== Phase.VOTING)
+            throw new BadRequestError('Не в фазе голосования')
+
+        await prisma.vote.delete({
+            where: { id: user.id },
+        })
+
+        await prisma.chapterProposal.update({
+            where: { id: proposalId },
+            data: { voteCount: { decrement: 1 } },
+        })
+
+        console.log(`User ${authorId} deleted vote for proposal ${proposalId}`)
+
         return { success: true }
     },
 
     async getProposals(storyId: string, parentChapterId: string) {
-        return prisma.chapterProposal.findMany({
+        const proposals = prisma.chapterProposal.findMany({
             where: { storyId, parentChapterId },
             include: { votes: true },
         })
+        return (await proposals).map((proposal) => ({
+            ...proposal,
+            createdAt: proposal.createdAt.toISOString(),
+            updatedAt: proposal.updatedAt.toISOString(),
+        }))
+    },
+
+    async getProposalById(id: string) {
+        const proposal = await prisma.chapterProposal.findUnique({
+            where: { id },
+            include: { votes: true },
+        })
+        if (!proposal)
+            throw new NotFoundError(`Предложение с ID ${id} не найдено`)
+
+        return {
+            ...proposal,
+            createdAt: proposal.createdAt.toISOString(),
+            updatedAt: proposal.updatedAt.toISOString(),
+        }
+    },
+
+    // Получение предложений с пагинацией
+    async getProposalsPaginated(
+        storyId: string,
+        parentChapterId: string,
+        page: number = 1,
+        pageSize: number = 10
+    ) {
+        const totalCount = await prisma.chapterProposal.count({
+            where: { storyId, parentChapterId },
+        })
+        const items = await prisma.chapterProposal.findMany({
+            where: { storyId, parentChapterId },
+            orderBy: { createdAt: 'asc' },
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+        })
+        const totalPages = Math.ceil(totalCount / pageSize) || 1
+        // Преобразуем Date в строки ISO и добавляем флаг hasWon
+        const itemsWithHasWon = items.map((item) => ({
+            ...item,
+            hasWon: false,
+            createdAt: item.createdAt.toISOString(),
+            updatedAt: item.updatedAt.toISOString(),
+        }))
+        return {
+            items: itemsWithHasWon,
+            totalCount,
+            totalPages,
+            page,
+            pageSize,
+        }
     },
 
     async endProposals(storyId: string) {
         // Меняем фазу на VOTING и устанавливаем дедлайн
-        const votingDeadline = new Date(Date.now() + VOTING_DURATION)
+        const story = await prisma.story.findUnique({
+            where: { id: storyId },
+        })
+
+        if (!story) {
+            throw new NotFoundError(`История с ID ${storyId} не найдена`)
+        }
+
+        const votingDeadline = new Date(Date.now() + story.votingTime)
         await prisma.story.update({
             where: { id: storyId },
-            data: { currentPhase: Phase.VOTING, votingDeadline },
+            data: {
+                currentPhase: Phase.VOTING,
+                votingDeadline,
+                proposalDeadline: null,
+            },
         })
         // Запускаем таймер завершения голосования
-        setTimeout(() => this.endVoting(storyId), VOTING_DURATION)
+        setTimeout(() => this.endVoting(storyId), story.votingTime)
     },
 
     async endVoting(storyId: string) {
-        // Подводим итоги
         const proposals = await prisma.chapterProposal.findMany({
             where: { storyId },
         })
-        // Находим победителя с max voteCount
-        const winner = proposals.reduce((prev, cur) =>
-            prev.voteCount > cur.voteCount ? prev : cur
-        )
 
-        // Снимаем флаг isLastChapter со старой главы
+        if (proposals.length === 0) {
+            await prisma.story.update({
+                where: { id: storyId },
+                data: { currentPhase: Phase.PROPOSAL, votingDeadline: null },
+            })
+
+            return
+        }
+
+        let winner
+        const allCountVotes = proposals.reduce((acc, proposal) => {
+            acc += proposal.voteCount
+            return acc
+        }, 0)
+
+        if (allCountVotes === 0) {
+            const randomIndex = Math.floor(Math.random() * proposals.length)
+            winner = proposals[randomIndex]
+        } else {
+            winner = proposals.reduce((prev, cur) =>
+                prev.voteCount > cur.voteCount ? prev : cur
+            )
+        }
+
+        await prisma.story.update({
+            where: { id: storyId },
+            data: { currentPhase: Phase.PROPOSAL, votingDeadline: null },
+        })
+
         await prisma.chapter.updateMany({
             where: { storyId, isLastChapter: true },
             data: { isLastChapter: false },
         })
-
-        // // Добавляем новую главу из победившего предложения
-        // const newChapter = await prisma.chapter.create({
-        //     data: {
-        //         storyId,
-        //         title: winner.title,
-        //         content: winner.content,
-        //         authorId: winner.authorId,
-        //         position: proposals.length + 1,
-        //         isLastChapter: true,
-        //     },
-        // })
 
         await chapterStoryService.createChapter(
             storyId,
@@ -127,18 +403,6 @@ export const proposalService = {
             winner.authorId
         )
 
-        // Обновляем story: сбрасываем предложения, переводим в следующую фазу
-        // await prisma.story.update({
-        //     where: { id: storyId },
-        //     data: {
-        //         chapters: { connect: { id: newChapter.id } },
-        //         currentPhase: Phase.PROPOSAL,
-        //         proposalDeadline: null,
-        //         votingDeadline: null,
-        //     },
-        // })
-
-        // Удаляем предыдущие предложения
         await prisma.chapterProposal.deleteMany({ where: { storyId } })
     },
 }

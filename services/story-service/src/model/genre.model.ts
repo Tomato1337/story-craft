@@ -9,13 +9,13 @@ export const createGenreSchema = z.object({
 
 export type CreateGenreInput = z.infer<typeof createGenreSchema>
 
+export const genreResponseSchema = z.object({
+    id: z.string().uuid(),
+    name: z.string(),
+})
+
 export const getAllGenresResponseSchema = z.object({
     count: z.number(),
-    genres: z.array(
-        z.object({
-            id: z.string(),
-            name: z.string(),
-        })
-    ),
+    genres: z.array(genreResponseSchema),
 })
 export type GetAllGenresResponse = z.infer<typeof getAllGenresResponseSchema>

@@ -36,6 +36,7 @@ services:
     depends_on:
       - auth-service-dev
       - story-service-dev
+      - user-profile-service-dev
     env_file:
       - .env
     networks:

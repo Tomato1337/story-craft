@@ -1,10 +1,14 @@
-FROM node:18-alpine
+FROM node:23-slim
 
 WORKDIR /app
+
+RUN apt-get update -y && apt-get install -y openssl
 
 COPY package*.json ./
 RUN npm install
 
 COPY . .
 
-CMD ["/bin/sh", "-c", "npm install && npx prisma migrate deploy && npm run dev"]
+RUN npx prisma generate
+
+CMD ["/bin/sh", "-c", "npm install && npx prisma migrate deploy && npm run prisma:seed && npm run dev"]

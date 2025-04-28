@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Story" ADD COLUMN     "proposalTime" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "votingTime" INTEGER NOT NULL DEFAULT 0;
