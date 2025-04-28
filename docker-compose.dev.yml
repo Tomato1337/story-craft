@@ -70,19 +70,16 @@ services:
       - .env
     networks:
       - backend
-  
 
   user-profile-service-dev:
     build:
       context: ./services/user-profile-service
       dockerfile: Dockerfile
-    # volumes:
-    #   - ./services/auth-service:/app
-    #   - /app/node_modules
     ports:
       - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     environment:
-      - DB_HOST=${POSTGRES_DB}
+      - PORT=${USER_SERVICE_PORT}
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
