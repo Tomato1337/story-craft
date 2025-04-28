@@ -1,17 +1,15 @@
 import fastify from 'fastify'
 import { env } from './config'
 import closeWithGrace from 'close-with-grace'
+import fastifySwagger from '@fastify/swagger'
 import {
-    hasZodFastifySchemaValidationErrors,
-    isResponseSerializationError,
+    jsonSchemaTransform,
     serializerCompiler,
     validatorCompiler,
 } from 'fastify-type-provider-zod'
-import fastifyCors from '@fastify/cors'
-import fastifyHelmet from '@fastify/helmet'
-import fastifyCompress from '@fastify/compress'
 import { routes } from './routes'
 import authenticate from './plugins/authenticate'
+import errorHandler from './plugins/error-handler'
 
 const settingsFastify = {
     logger: {
@@ -25,59 +23,40 @@ const settingsFastify = {
     trustProxy: true,
 }
 
-const app = fastify(settingsFastify)
+export const app = fastify(settingsFastify)
+
+app.setValidatorCompiler(validatorCompiler)
+app.setSerializerCompiler(serializerCompiler)
+
+app.register(errorHandler)
+
+app.register(fastifySwagger, {
+    openapi: {
+        info: {
+            title: 'Story Service API',
+            description: 'API для работы с историями, главами и жанрами',
+            version: '1.0.0',
+        },
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                },
+            },
+        },
+    },
+    transform: jsonSchemaTransform,
+})
+
+app.register(authenticate)
+app.register(routes)
 
 const start = async () => {
     try {
-        app.setValidatorCompiler(validatorCompiler)
-        app.setSerializerCompiler(serializerCompiler)
-
-        await app.register(fastifyCors)
-        await app.register(fastifyHelmet)
-        await app.register(fastifyCompress)
-
-        app.register(authenticate)
-        app.register(routes)
-
-        app.setErrorHandler((error, request, reply) => {
-            app.log.error(error)
-
-            if (hasZodFastifySchemaValidationErrors(error)) {
-                return reply.code(400).send({
-                    error: 'Response Validation Error',
-                    message: "Request doesn't match the schema",
-                    statusCode: 400,
-                    details: {
-                        issues: error.validation,
-                        method: request.method,
-                        url: request.url,
-                    },
-                })
-            }
-
-            if (isResponseSerializationError(error)) {
-                return reply.code(500).send({
-                    error: 'Internal Server Error',
-                    message: "Response doesn't match the schema",
-                    statusCode: 500,
-                    details: {
-                        issues: error.cause.issues,
-                        method: error.method,
-                        url: error.url,
-                    },
-                })
-            }
-
-            const statusCode = error.statusCode || 500
-
-            return reply.status(statusCode).send({
-                statusCode,
-                error: 'Internal Server Error',
-                message: error.message,
-            })
-        })
-
         await app.listen({ port: env.PORT, host: env.HOST })
+
         app.log.info(
             `API Gateway server running at ${env.HOST}:${env.PORT} in ${env.NODE_ENV} mode`
         )
@@ -98,4 +77,7 @@ closeWithGrace(async ({ signal, err, manual }) => {
     }
 })
 
-start()
+// Запуск сервера, если не в режиме тестирования Vitest
+if (!process.env.VITEST) {
+    start()
+}

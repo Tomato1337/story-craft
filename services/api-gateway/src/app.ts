@@ -30,6 +30,7 @@ const start = async () => {
         await app.register(jwt, {
             secret: env.JWT_SECRET,
         })
+        await app.register(plugins.swagger)
         await app.register(plugins.sensible)
         await app.register(plugins.proxy)
 

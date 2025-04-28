@@ -32,8 +32,10 @@ model Story {
     coverImageUrl      String?             @db.VarChar(255)
     authorId           String
     isActive           Boolean             @default(true)
-    isPublic           Boolean             @default(false)
+    isPublic           Boolean             @default(true)
     currentPhase       Phase               @default(PROPOSAL)
+    proposalTime       Int                 @default(0)
+    votingTime         Int                 @default(0)
     viewCount          Int                 @default(0)
     proposalDeadline   DateTime?           @db.Timestamp()
     votingDeadline     DateTime?           @db.Timestamp()

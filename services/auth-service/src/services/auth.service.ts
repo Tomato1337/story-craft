@@ -55,10 +55,6 @@ export class AuthService {
 
             const accessToken = createAccessToken({
                 userId: user.id,
-                email: user.email,
-                role: user.role,
-                username: user.username,
-                avatarUrl: user.avatarUrl,
             })
 
             const refreshToken = await createRefreshToken(user.id)
@@ -115,8 +111,6 @@ export class AuthService {
 
             const accessToken = createAccessToken({
                 userId: user.id,
-                email: user.email,
-                role: user.role,
             })
 
             const refreshToken = await createRefreshToken(user.id)
@@ -191,8 +185,6 @@ export class AuthService {
 
             const accessToken = createAccessToken({
                 userId: user.id,
-                email: user.email,
-                role: user.role,
             })
 
             const refreshToken = await createRefreshToken(user.id)

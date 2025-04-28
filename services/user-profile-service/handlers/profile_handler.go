@@ -24,25 +24,20 @@ func NewProfileHandler(db *gorm.DB) *ProfileHandler {
 func (h ProfileHandler) CreateProfile(c *gin.Context) {
 	var input models.InputProfile
 
-	userID := c.Request.Header.Get("x-user-object")
+	reqData := c.Request.Header.Get("x-user-object")
 
-	// Структура для парсинга
 	var data map[string]interface{}
-
-	// Парсинг JSON
-	err := json.Unmarshal([]byte(userID), &data)
+	err := json.Unmarshal([]byte(reqData), &data)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка в формате JSON: проверьте правильность данных"})
 	}
 
-	// Извлечение значения userId
-	userId, ok := data["userId"].(string)
+	userID, ok := data["userId"].(string)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка: не удалось извлечь userId из JSON"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка: не удалось извлечь userId из заголовка"})
 		return
 	}
-
-	input.UserID = userId
+	input.UserID = userID
 
 	body := c.Request.Body
 	defer body.Close()
@@ -52,7 +47,7 @@ func (h ProfileHandler) CreateProfile(c *gin.Context) {
 		return
 	}
 
-	userUUID, err := uuid.Parse(userId)
+	userUUID, err := uuid.Parse(userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Ошибка: неверный формат user_id: " + userID})
 		return
@@ -71,7 +66,7 @@ func (h ProfileHandler) CreateProfile(c *gin.Context) {
 	// Проверка на существование пользователя с таким username
 	var existingProfile models.Profile
 	if err := h.db.Where("user_id = ?", userUUID).First(&existingProfile).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Пользователь с таким username уже существует"})
+		c.JSON(http.StatusConflict, gin.H{"error": "Пользователь с таким username или email уже существует"})
 		return
 	} else if err != gorm.ErrRecordNotFound {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при проверке существующих пользователей"})
@@ -79,7 +74,7 @@ func (h ProfileHandler) CreateProfile(c *gin.Context) {
 	}
 
 	profile := models.Profile{
-		UserID:    userId,
+		UserID:    userID,
 		Username:  input.Username,
 		Email:     input.Email,
 		AvatarURL: input.AvatarURL,
@@ -100,7 +95,7 @@ func (h ProfileHandler) CreateProfile(c *gin.Context) {
 
 // Получение профиля по user_id
 func (h ProfileHandler) GetProfile(c *gin.Context) {
-	userID := c.Request.Header.Get("x-user-object")
+	userID := c.Params.ByName("user_id")
 
 	var profile models.Profile
 	if err := h.db.Where("user_id = ?", userID).First(&profile).Error; err != nil {
@@ -119,7 +114,9 @@ func (h ProfileHandler) GetProfile(c *gin.Context) {
 func (h ProfileHandler) UpdateProfile(c *gin.Context) {
 	var input models.UpdateProfile
 
-	userID := c.Request.Header.Get("x-user-object")
+	userID := c.Params.ByName("user_id")
+	input.UserID = userID
+
 	body := c.Request.Body
 	defer body.Close()
 
@@ -158,7 +155,7 @@ func (h ProfileHandler) UpdateProfile(c *gin.Context) {
 
 // Удаление профиля
 func (h ProfileHandler) DeleteProfile(c *gin.Context) {
-	userID := c.Request.Header.Get("x-user-object")
+	userID := c.Params.ByName("user_id")
 
 	// Проверка существования профиля перед удалением
 	var profile models.Profile
@@ -176,5 +173,5 @@ func (h ProfileHandler) DeleteProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusNoContent, nil)
+	c.JSON(http.StatusNoContent, "Профиль успешно удалён")
 }
