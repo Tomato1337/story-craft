@@ -62,22 +62,11 @@ export default fastifyPlugin(async (fastify: FastifyInstance) => {
         const fetchPromises = Object.entries(serviceConfig)
             .filter(([_, config]) => config.swaggerEnabled)
             .map(async ([serviceName, config]) => {
-                let schema = await fetchServiceSchema(serviceName, config)
-                let count = 0
-                if (!schema) {
-                    while (!schema && count < 10) {
-                        await new Promise((resolve) =>
-                            setTimeout(resolve, 1000)
-                        )
-                        count++
-                        fastify.log.info(
-                            `Повторная попытка получения схемы от ${serviceName}`
-                        )
-                        schema = await fetchServiceSchema(serviceName, config)
-                    }
+                const schema = await fetchServiceSchema(serviceName, config)
+                
+                if (schema) {
+                    serviceSchemas[serviceName] = schema
                 }
-
-                serviceSchemas[serviceName] = schema
             })
 
         await Promise.all(fetchPromises)

@@ -9,17 +9,28 @@ const envSchema = z.object({
         .default('info'),
 })
 
-export const env = (() => {
-    try {
-        return envSchema.parse(process.env)
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            console.error(
-                '❌ Invalid environment variables:',
-                JSON.stringify(error.format(), null, 2)
-            )
-            process.exit(1)
-        }
-        throw error
-    }
-})()
+type Env = z.infer<typeof envSchema>
+
+const testValues: Env = {
+    NODE_ENV: 'dev',
+    PORT: 3002,
+    HOST: '0.0.0.0',
+    LOG_LEVEL: 'info',
+}
+
+export const env: Env = process.env.VITEST
+    ? testValues
+    : (() => {
+          try {
+              return envSchema.parse(process.env)
+          } catch (error) {
+              if (error instanceof z.ZodError) {
+                  console.error(
+                      '❌ Invalid environment variables:',
+                      JSON.stringify(error.format(), null, 2)
+                  )
+                  process.exit(1)
+              }
+              throw error
+          }
+      })()

@@ -10,6 +10,7 @@ import {
 import { routes } from './routes'
 import authenticate from './plugins/authenticate'
 import errorHandler from './plugins/error-handler'
+import { initializeTimers } from './startup'
 
 const settingsFastify = {
     logger: {
@@ -52,6 +53,8 @@ app.register(fastifySwagger, {
 
 app.register(authenticate)
 app.register(routes)
+
+initializeTimers()
 
 const start = async () => {
     try {

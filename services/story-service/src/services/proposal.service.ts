@@ -7,10 +7,7 @@ import {
 } from '../utils/errors'
 import { chapterStoryService } from './chapter.service'
 import { collaboratorService } from './collaborator.service'
-
-// Время фаз (в мс), можно вынести в конфиг
-// const PROPOSAL_DURATION = 1000 * 60 * 1
-// const VOTING_DURATION = 1000 * 60 * 1
+import { TimerService } from './time.service'
 
 export const proposalService = {
     async createProposeChapter(
@@ -20,7 +17,6 @@ export const proposalService = {
         title: string,
         content: string
     ) {
-        // Получаем последнюю главу для привязки предложения
         const lastChapter = await prisma.chapter.findFirst({
             where: { storyId, isLastChapter: true },
             orderBy: { position: 'desc' },
@@ -28,7 +24,7 @@ export const proposalService = {
         if (!lastChapter || lastChapter.id !== parentChapterId) {
             throw new BadRequestError('Нет доступной главы для продолжения')
         }
-        // Проверка фазы и остальные проверки...
+
         const story = await prisma.story.findUnique({ where: { id: storyId } })
         if (!story)
             throw new NotFoundError(`История с ID ${storyId} не найдена`)
@@ -37,7 +33,6 @@ export const proposalService = {
                 'Сейчас не фаза предложений для этой истории'
             )
 
-        // Создание предложения, используя найденный parentChapterId
         const proposal = await prisma.chapterProposal.create({
             data: { storyId, parentChapterId, authorId, title, content },
         })
@@ -50,14 +45,12 @@ export const proposalService = {
                 where: { id: storyId },
                 data: { proposalDeadline: deadline },
             })
-            setTimeout(() => this.endProposals(storyId), story.proposalTime)
+            TimerService.setProposalTimer(storyId, story.proposalTime, () =>
+                this.endProposals(storyId)
+            )
         }
 
-        return {
-            ...proposal,
-            createdAt: proposal.createdAt.toISOString(),
-            updatedAt: proposal.updatedAt.toISOString(),
-        }
+        return proposal
     },
 
     async deleteProposal(
@@ -140,11 +133,7 @@ export const proposalService = {
 
         console.log(`Proposal ${proposalId} changed by user ${authorId}`)
 
-        return {
-            ...proposalAfter,
-            createdAt: proposalAfter.createdAt.toISOString(),
-            updatedAt: proposalAfter.updatedAt.toISOString(),
-        }
+        return proposalAfter
     },
 
     async selectWinnerProposal(proposalId: string, authorId: string) {
@@ -268,15 +257,11 @@ export const proposalService = {
     },
 
     async getProposals(storyId: string, parentChapterId: string) {
-        const proposals = prisma.chapterProposal.findMany({
+        const proposals = await prisma.chapterProposal.findMany({
             where: { storyId, parentChapterId },
             include: { votes: true },
         })
-        return (await proposals).map((proposal) => ({
-            ...proposal,
-            createdAt: proposal.createdAt.toISOString(),
-            updatedAt: proposal.updatedAt.toISOString(),
-        }))
+        return proposals
     },
 
     async getProposalById(id: string) {
@@ -287,14 +272,9 @@ export const proposalService = {
         if (!proposal)
             throw new NotFoundError(`Предложение с ID ${id} не найдено`)
 
-        return {
-            ...proposal,
-            createdAt: proposal.createdAt.toISOString(),
-            updatedAt: proposal.updatedAt.toISOString(),
-        }
+        return proposal
     },
 
-    // Получение предложений с пагинацией
     async getProposalsPaginated(
         storyId: string,
         parentChapterId: string,
@@ -311,12 +291,10 @@ export const proposalService = {
             take: pageSize,
         })
         const totalPages = Math.ceil(totalCount / pageSize) || 1
-        // Преобразуем Date в строки ISO и добавляем флаг hasWon
+
         const itemsWithHasWon = items.map((item) => ({
             ...item,
             hasWon: false,
-            createdAt: item.createdAt.toISOString(),
-            updatedAt: item.updatedAt.toISOString(),
         }))
         return {
             items: itemsWithHasWon,
@@ -328,7 +306,6 @@ export const proposalService = {
     },
 
     async endProposals(storyId: string) {
-        // Меняем фазу на VOTING и устанавливаем дедлайн
         const story = await prisma.story.findUnique({
             where: { id: storyId },
         })
@@ -346,8 +323,10 @@ export const proposalService = {
                 proposalDeadline: null,
             },
         })
-        // Запускаем таймер завершения голосования
-        setTimeout(() => this.endVoting(storyId), story.votingTime)
+
+        TimerService.setVotingTimer(storyId, story.votingTime, () =>
+            this.endVoting(storyId)
+        )
     },
 
     async endVoting(storyId: string) {

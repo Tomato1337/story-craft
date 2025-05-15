@@ -27,11 +27,7 @@ export const chapterStoryService = {
                 isLastChapter: true,
             },
         })
-        return {
-            ...chapter,
-            createdAt: chapter.createdAt.toISOString(),
-            updatedAt: chapter.updatedAt.toISOString(),
-        }
+        return chapter
     },
 
     async getChapterById(chapterId: string) {
@@ -43,11 +39,7 @@ export const chapterStoryService = {
             throw new NotFoundError(`Глава с ID ${chapterId} не найдена`)
         }
 
-        return {
-            ...chapter,
-            createdAt: chapter.createdAt.toISOString(),
-            updatedAt: chapter.updatedAt.toISOString(),
-        }
+        return chapter
     },
 
     async getChaptersPaginated(
@@ -71,14 +63,7 @@ export const chapterStoryService = {
             take: pageSize,
         })
 
-        // Преобразуем Date в строки ISO
-        const formattedItems = items.map((item) => ({
-            ...item,
-            createdAt: item.createdAt.toISOString(),
-            updatedAt: item.updatedAt.toISOString(),
-        }))
-
         const totalPages = Math.ceil(totalCount / pageSize) || 1
-        return { items: formattedItems, totalCount, totalPages, page, pageSize }
+        return { items, totalCount, totalPages, page, pageSize }
     },
 }

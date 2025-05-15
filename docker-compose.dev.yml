@@ -34,9 +34,12 @@ services:
         - action: rebuild
           path: ./services/api-gateway/package.json
     depends_on:
-      - auth-service-dev
-      - story-service-dev
-      - user-profile-service-dev
+      auth-service-dev:
+        condition: service_healthy
+      story-service-dev:
+        condition: service_healthy
+      # user-profile-service-dev:
+      #   condition: service_healthy
     env_file:
       - .env
     networks:
@@ -67,6 +70,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+        test: ["CMD-SHELL", "wget -q --spider http://localhost:${AUTH_SERVICE_PORT}/health > /dev/null 2>&1"]
+        interval: 30s
+        timeout: 5s
+        retries: 5
+        start_period: 10s
     env_file:
       - .env
     networks:
@@ -105,6 +114,7 @@ services:
         dockerfile: Dockerfile.dev      
       ports:
         - "${STORY_SERVICE_PORT}:${STORY_SERVICE_PORT}"
+        - 9323:9323 # Playwright
       volumes:
         - ./services/story-service/prisma:/app/prisma
       environment:
@@ -124,6 +134,12 @@ services:
       depends_on:
         postgres:
           condition: service_healthy
+      healthcheck:
+        test: ["CMD-SHELL", "wget -q --spider http://localhost:${STORY_SERVICE_PORT}/health > /dev/null 2>&1"]
+        interval: 30s
+        timeout: 5s
+        retries: 5
+        start_period: 10s
       env_file:
         - .env
       networks:

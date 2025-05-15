@@ -22,7 +22,6 @@ const swaggerSpec = swaggerJSDoc(swaggerOptions)
 router.use('/', authRoutes)
 
 router.get('/health', (req, res) => {
-    console.log(req.headers['x-user-object'])
     res.status(200).json({
         status: 'ok',
         service: 'auth-service',

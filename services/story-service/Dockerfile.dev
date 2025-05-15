@@ -1,8 +1,8 @@
-FROM node:23-slim
+FROM node:20-slim
 
 WORKDIR /app
 
-RUN apt-get update -y && apt-get install -y openssl
+RUN apt-get update -y && apt-get install -y openssl curl wget
 
 COPY package*.json ./
 RUN npm install
@@ -11,4 +11,5 @@ COPY . .
 
 RUN npx prisma generate
 
-CMD ["/bin/sh", "-c", "npm install && npx prisma migrate deploy && npm run prisma:seed && npm run dev"]
+# ? npm install делаем, чтобы каждый раз не перезапускать контейнер при установки новых пакетов. Docker watch отловит изменения в коде и перезапустит контейнер с данной командой
+CMD ["/bin/sh", "-c", "npm install && npx prisma migrate dev && npm run prisma:seed && npm run dev"]

@@ -76,7 +76,6 @@ export const storyController = {
         reply: FastifyReply
     ) {
         const { page = 1, pageSize = 10 } = request.query
-        console.log(request.user?.userId, ' - userId')
         const result = await storyService.getStoriesPaginated(
             page,
             pageSize,

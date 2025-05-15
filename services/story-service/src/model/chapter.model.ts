@@ -14,8 +14,8 @@ export const chapterResponseSchema = z.object({
     storyId: z.string().uuid(),
     position: z.number(),
     isLastChapter: z.boolean(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
 })
 export type ChapterResponse = z.infer<typeof chapterResponseSchema>
 
@@ -34,8 +34,8 @@ export const proposalResponseSchema = z.object({
     parentChapterId: z.string().uuid(),
     voteCount: z.number(),
     hasWon: z.boolean(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
 })
 export type ProposalResponse = z.infer<typeof proposalResponseSchema>
 

@@ -2,11 +2,7 @@ import { FastifyReply, FastifyRequest } from 'fastify'
 import { proposalService } from '../services/proposal.service'
 import { chapterStoryService } from '../services/chapter.service'
 import { ProposeChapterInput } from '../model/chapter.model'
-import {
-    BadRequestError,
-    NotFoundError,
-    UnauthorizedError,
-} from '../utils/errors'
+import { NotFoundError, UnauthorizedError } from '../utils/errors'
 
 export const chapterController = {
     async getChapters(

@@ -2,6 +2,8 @@ import { Prisma } from '@prisma/client'
 import { ChangeStoryInput, CreateStoryInput } from '../model/story.model'
 import { prisma, Role } from '../prisma'
 import { BadRequestError, ForbiddenError, NotFoundError } from '../utils/errors'
+import { TimerService } from './time.service'
+import { proposalService } from './proposal.service'
 
 export const storyService = {
     async createStory(data: CreateStoryInput, authorId: string) {
@@ -66,7 +68,7 @@ export const storyService = {
         }
     },
 
-    async getStoryById(id: string) {
+    async getStoryById(id: string, userId?: string) {
         const story = await prisma.story.findUnique({
             where: { id },
             include: {
@@ -74,6 +76,12 @@ export const storyService = {
                 genres: true,
             },
         })
+
+        if (!story?.isPublic && story?.authorId !== userId) {
+            throw new ForbiddenError(
+                'У вас нет прав для просмотра этой истории'
+            )
+        }
 
         let result
         if (story) {
@@ -93,18 +101,7 @@ export const storyService = {
 
         if (!result) return null
 
-        // Преобразуем Date в строки ISO
-        return {
-            ...result,
-            createdAt: result.createdAt.toISOString(),
-            updatedAt: result.updatedAt.toISOString(),
-            proposalDeadline: result.proposalDeadline
-                ? result.proposalDeadline.toISOString()
-                : null,
-            votingDeadline: result.votingDeadline
-                ? result.votingDeadline.toISOString()
-                : null,
-        }
+        return result
     },
 
     async getMyStoriesPaginated(
@@ -136,26 +133,17 @@ export const storyService = {
             include: { storyCollaborators: true, genres: true },
         })
 
-        // Преобразуем Date в строки ISO
-        const formattedItems = items.map((item) => ({
-            ...item,
-            createdAt: item.createdAt.toISOString(),
-            updatedAt: item.updatedAt.toISOString(),
-            proposalDeadline: item.proposalDeadline
-                ? item.proposalDeadline.toISOString()
-                : null,
-            votingDeadline: item.votingDeadline
-                ? item.votingDeadline.toISOString()
-                : null,
-        }))
-
         const totalPages = Math.ceil(totalCount / pageSize) || 1
-        return { items: formattedItems, totalCount, totalPages, page, pageSize }
+        return { items, totalCount, totalPages, page, pageSize }
     },
 
     async updateStory(
         id: string,
-        data: Partial<ChangeStoryInput>,
+        // Добавляем proposalDeadline в тип данных, чтобы пользователь не смог его указать, но при этом правильно работала типизация
+        data: Partial<ChangeStoryInput> & {
+            proposalDeadline?: Date
+            votingDeadline?: Date
+        },
         userId: string
     ) {
         const story = await prisma.story.findUnique({
@@ -180,6 +168,53 @@ export const storyService = {
             )
         }
 
+        if (
+            data.proposalTime !== undefined &&
+            story.proposalTime !== data.proposalTime &&
+            story.currentPhase === 'PROPOSAL' &&
+            story.proposalDeadline
+        ) {
+            TimerService.clearProposalTimer(id)
+
+            const now = new Date()
+            const deadline = story.proposalDeadline
+            const elapsedTime =
+                now.getTime() - (deadline.getTime() - story.proposalTime)
+            const remainingTime = Math.max(
+                data.proposalTime - elapsedTime,
+                1000
+            )
+
+            const newDeadline = new Date(now.getTime() + remainingTime)
+            data['proposalDeadline'] = newDeadline
+
+            TimerService.setProposalTimer(id, remainingTime, () =>
+                proposalService.endProposals(id)
+            )
+        }
+
+        if (
+            data.votingTime !== undefined &&
+            story.votingTime !== data.votingTime &&
+            story.currentPhase === 'VOTING' &&
+            story.votingDeadline
+        ) {
+            TimerService.clearVotingTimer(id)
+
+            const now = new Date()
+            const deadline = story.votingDeadline
+            const elapsedTime =
+                now.getTime() - (deadline.getTime() - story.votingTime)
+            const remainingTime = Math.max(data.votingTime - elapsedTime, 1000)
+
+            const newDeadline = new Date(now.getTime() + remainingTime)
+            data['votingDeadline'] = newDeadline
+
+            TimerService.setVotingTimer(id, remainingTime, () =>
+                proposalService.endVoting(id)
+            )
+        }
+
         try {
             const updateStory = await prisma.story.update({
                 where: { id },
@@ -196,11 +231,7 @@ export const storyService = {
                 },
             })
 
-            return {
-                ...updateStory,
-                updatedAt: new Date().toISOString(),
-                createdAt: updateStory.createdAt.toISOString(),
-            }
+            return updateStory
         } catch (error) {
             if (error.code === 'P2025') {
                 throw new BadRequestError(
@@ -234,6 +265,8 @@ export const storyService = {
             where: { id },
         })
 
+        TimerService.clearAllTimers(id)
+
         return { success: true }
     },
 
@@ -264,20 +297,7 @@ export const storyService = {
 
         const items = await prisma.story.findMany(obj)
 
-        // Преобразуем Date в строки ISO для соответствия схеме и тестов
-        const formattedItems = items.map((item) => ({
-            ...item,
-            createdAt: item.createdAt.toISOString(),
-            updatedAt: item.updatedAt.toISOString(),
-            proposalDeadline: item.proposalDeadline
-                ? item.proposalDeadline.toISOString()
-                : null,
-            votingDeadline: item.votingDeadline
-                ? item.votingDeadline.toISOString()
-                : null,
-        }))
-
         const totalPages = Math.ceil(totalCount / pageSize) || 1
-        return { items: formattedItems, totalCount, totalPages, page, pageSize }
+        return { items, totalCount, totalPages, page, pageSize }
     },
 }
