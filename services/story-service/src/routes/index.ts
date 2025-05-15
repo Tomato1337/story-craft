@@ -1,4 +1,3 @@
-import { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import {
     FastifyPluginAsyncZod,
     ZodTypeProvider,
@@ -18,6 +17,8 @@ export const routes: FastifyPluginAsyncZod = async (app, options) => {
         method: 'GET',
         url: '/health',
         schema: {
+            tags: ['Stories'],
+            description: 'Health check endpoint.',
             response: {
                 201: z.object({
                     status: z.string(),
@@ -32,6 +33,19 @@ export const routes: FastifyPluginAsyncZod = async (app, options) => {
                 timestamp: new Date(),
                 environment: env.NODE_ENV,
             }
+        },
+    })
+
+    app.withTypeProvider<ZodTypeProvider>().route({
+        method: 'GET',
+        url: '/schema',
+        schema: {
+            tags: ['Stories'],
+            description:
+                'Get OpenAPI schema. This schema will be imported in the API Gateway.',
+        },
+        handler: async (request, reply) => {
+            return reply.send(app.swagger())
         },
     })
 

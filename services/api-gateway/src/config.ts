@@ -34,6 +34,7 @@ export const env = (() => {
 const serviceConfigSchema = z.object({
     prefix: z.string().startsWith('/'),
     upstream: z.string().url(),
+    swaggerEnabled: z.boolean().default(false),
 })
 
 type ServiceConfig = z.infer<typeof serviceConfigSchema>
@@ -69,36 +70,42 @@ export const serviceConfig = validateServiceConfig({
         upstream: `http://${getServiceHost('auth-service')}:${
             env.PORT_AUTH_SERVICE
         }`,
+        swaggerEnabled: true,
     },
     user: {
         prefix: '/users',
         upstream: `http://${getServiceHost('user-profile-service')}:${
             env.PORT_USER_SERVICE
         }`,
+        swaggerEnabled: false,
     },
     story: {
         prefix: '/stories',
         upstream: `http://${getServiceHost('story-service')}:${
             env.PORT_STORY_SERVICE
         }`,
+        swaggerEnabled: true,
     },
     media: {
         prefix: '/media',
         upstream: `http://${getServiceHost('media-service')}:${
             env.PORT_MEDIA_SERVICE
         }`,
+        swaggerEnabled: false,
     },
     social: {
         prefix: '/social',
         upstream: `http://${getServiceHost('social-interaction-service')}:${
             env.PORT_SOCIAL_SERVICE
         }`,
+        swaggerEnabled: false,
     },
     notification: {
         prefix: '/notifications',
         upstream: `http://${getServiceHost('notification-service')}:${
             env.PORT_NOTIFICATION_SERVICE
         }`,
+        swaggerEnabled: false,
     },
 })
 

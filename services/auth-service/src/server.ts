@@ -1,8 +1,8 @@
 import express from 'express'
 import morgan from 'morgan'
-import helmet from 'helmet'
-import cors from 'cors'
-import compression from 'compression'
+// import helmet from 'helmet'
+// import cors from 'cors'
+// import compression from 'compression'
 import methodOverride from 'method-override'
 import 'dotenv/config'
 import config from './config'
@@ -22,9 +22,9 @@ class ExpressServer {
         this.app.use(express.json())
         this.app.use(express.urlencoded({ extended: true }))
         this.app.use(morgan(config.nodeEnv === 'dev' ? 'dev' : 'combined'))
-        this.app.use(helmet())
-        this.app.use(cors())
-        this.app.use(compression())
+        // this.app.use(helmet())
+        // this.app.use(cors())
+        // this.app.use(compression())
         this.app.use(methodOverride())
     }
 

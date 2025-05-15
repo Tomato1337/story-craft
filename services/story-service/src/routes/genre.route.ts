@@ -9,11 +9,13 @@ export const genreRoutes: FastifyPluginAsyncZod = async (app, options) => {
     app.withTypeProvider<ZodTypeProvider>().route({
         method: 'GET',
         url: '/',
-        // schema: {
-        //     response: {
-        //         200: getAllGenresResponseSchema,
-        //     },
-        // },
+        schema: {
+            tags: ['Stories'],
+            description: 'Get all genres',
+            response: {
+                200: getAllGenresResponseSchema,
+            },
+        },
         handler: genreController.getAllGenres,
     })
 }

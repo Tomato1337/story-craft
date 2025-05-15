@@ -6,6 +6,7 @@ import { TokenPayload } from 'storycraft-common-types'
 
 export default fastifyPlugin(async (fastify: FastifyInstance) => {
     // Добавляем заголовок x-user-object в запросы к проксируемым сервисам для аутентификации
+
     fastify.addHook('onRequest', async (request, reply) => {
         try {
             if (request.headers.authorization) {
