@@ -21,7 +21,10 @@ services:
       - PORT_SOCIAL_SERVICE=${SOCIAL_SERVICE_PORT}
       - PORT_NOTIFICATION_SERVICE=${NOTIFICATION_SERVICE_PORT}
     depends_on:
-      - auth-service
+      auth-service:
+        condition: service_healthy
+      story-service:
+        condition: service_healthy
     env_file:
       - .env
     networks:
@@ -40,6 +43,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:${AUTH_SERVICE_PORT}/health > /null 2>&1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     env_file:
       - .env
     networks:
@@ -54,6 +63,30 @@ services:
       - PORT=${STORY_SERVICE_PORT}
       - NODE_ENV=prod
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/storycraft_story
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:${STORY_SERVICE_PORT}/health > /null 2>&1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    env_file:
+      - .env
+    networks:
+      - backend
+  user-profile-service:
+    build:
+      context: ./services/user-profile-service
+      dockerfile: Dockerfile
+    environment:
+      - PORT=${USER_SERVICE_PORT}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
     depends_on:
       postgres:
         condition: service_healthy
