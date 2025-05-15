@@ -10,6 +10,8 @@ services:
     build:
       context: ./services/api-gateway
       dockerfile: Dockerfile.dev
+    ports:
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     # volumes:
     #   - ./services/api-gateway:/app
     #   - /app/node_modules
