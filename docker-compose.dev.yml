@@ -13,8 +13,6 @@ services:
     # volumes:
     #   - ./services/api-gateway:/app
     #   - /app/node_modules
-    ports:
-      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
     environment:
       - PORT=${API_GATEWAY_PORT}
       - NODE_ENV=dev
@@ -52,8 +50,6 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
         - ./services/auth-service/prisma:/app/prisma
-    ports:
-      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
     environment:
       - PORT=${AUTH_SERVICE_PORT}
       - NODE_ENV=dev
@@ -85,8 +81,6 @@ services:
     build:
       context: ./services/user-profile-service
       dockerfile: Dockerfile
-    ports:
-      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
     environment:
       - PORT=${USER_SERVICE_PORT}
       - DB_HOST=postgres
@@ -113,7 +107,6 @@ services:
         context: ./services/story-service
         dockerfile: Dockerfile.dev      
       ports:
-        - "${STORY_SERVICE_PORT}:${STORY_SERVICE_PORT}"
         - 9323:9323 # Playwright
       volumes:
         - ./services/story-service/prisma:/app/prisma
