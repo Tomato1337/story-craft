@@ -1,6 +1,7 @@
 interface Config {
     port: number
     nodeEnv: string
+    apiGatewayPort: number
     jwtSecret: string
     jwtAccessTokenExpiresIn: number
     jwtRefreshTokenExpiresIn: number
@@ -13,6 +14,7 @@ interface Config {
 const getConfig = (): Config => {
     return {
         port: getEnvNumber('PORT', 3001),
+        apiGatewayPort: getEnvNumber('API_GATEWAY_PORT', 3000),
         nodeEnv: getEnvString('NODE_ENV', 'dev'),
         logLevel: getEnvString('LOG_LEVEL', 'info'),
         jwtAccessTokenExpiresIn: getEnvNumber('JWT_ACCESS_EXPIRES', 15 * 60),

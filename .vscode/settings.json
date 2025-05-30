@@ -11,5 +11,6 @@
         "python": true,
         "typescriptreact": true,
         "typescript": true
-    }
+    },
+    "typescript.experimental.useTsgo": false
 }

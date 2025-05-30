@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma'
+import config from '../config'
 import {
     hashPassword,
     comparePassword,
@@ -25,8 +26,10 @@ export class AuthService {
         avatarUrl?: string
     }) {
         const { email, password, username, avatarUrl } = userData
+        let createdUser = null
 
         try {
+            // 1. Сначала проверим существование пользователя
             const existingUser = await prisma.user.findFirst({
                 where: {
                     OR: [{ email }, { username }],
@@ -39,32 +42,81 @@ export class AuthService {
                 )
             }
 
+            // 2. Создаем пользователя в auth-service
             const hashedPassword = await hashPassword(password)
             if (!hashedPassword) {
                 throw new InternalServerError('Failed to hash password')
             }
 
-            const user = await prisma.user.create({
+            createdUser = await prisma.user.create({
                 data: {
                     email,
                     username,
-                    avatarUrl: avatarUrl,
                     password: hashedPassword,
                 },
             })
 
+            // 3. Создаем токены
             const accessToken = createAccessToken({
-                userId: user.id,
+                userId: createdUser.id,
             })
+            const refreshToken = await createRefreshToken(createdUser.id)
 
-            const refreshToken = await createRefreshToken(user.id)
+            // 4. Создаем профиль в user-profile-service
+            try {
+                const URL = `http://${
+                    config.nodeEnv === 'dev' ? 'api-gateway-dev' : 'api-gateway'
+                }:${config.apiGatewayPort}/users/profiles`
+                console.log(URL)
+                const response = await fetch(URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                    body: JSON.stringify({
+                        userId: createdUser.id,
+                        email: createdUser.email,
+                        username: createdUser.username,
+                        role: createdUser.role,
+                        avatarUrl: avatarUrl || null,
+                    }),
+                })
 
+                if (!response.ok) {
+                    // Если запрос выполнен, но сервер вернул ошибку
+                    const errorData = await response.json().catch(() => ({}))
+                    throw new Error(
+                        `Ошибка создания профиля: ${
+                            response.status
+                        } ${JSON.stringify(errorData)}`
+                    )
+                }
+            } catch (err) {
+                console.log('Ошибка создания профиля:', err)
+
+                // КОМПЕНСИРУЮЩЕЕ ДЕЙСТВИЕ: удаляем созданного пользователя
+                if (createdUser) {
+                    console.log(
+                        `Откат: удаление пользователя ${createdUser.id} из-за ошибки создания профиля`
+                    )
+                    await prisma.user.delete({
+                        where: { id: createdUser.id },
+                    })
+                }
+
+                throw new Error(
+                    `Ошибка создания профиля в user-profile-service: ${err}`
+                )
+            }
+
+            // 5. Возвращаем результат
             return {
                 user: {
-                    id: user.id,
-                    email: user.email,
-                    username: user.username,
-                    role: user.role,
+                    id: createdUser.id,
+                    email: createdUser.email,
+                    username: createdUser.username,
+                    role: createdUser.role,
                 },
                 tokens: {
                     accessToken,
@@ -72,6 +124,7 @@ export class AuthService {
                 },
             }
         } catch (error) {
+            // Обработка всех остальных ошибок
             if (error instanceof AppError) {
                 throw error
             }

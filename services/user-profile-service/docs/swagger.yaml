@@ -1,0 +1,253 @@
+basePath: /
+definitions:
+  InputProfile:
+    properties:
+      avatarUrl:
+        example: https://example.com/avatar.jpg
+        type: string
+      email:
+        example: user@example.com
+        type: string
+      role:
+        example: user
+        type: string
+      userId:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      username:
+        example: user123
+        type: string
+    required:
+    - email
+    - userId
+    - username
+    type: object
+  Profile:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      created_at:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      last_seen:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+  UpdateProfile:
+    properties:
+      avatarUrl:
+        type: string
+      bio:
+        type: string
+      displayName:
+        type: string
+      email:
+        example: email@mail.ru
+        type: string
+      role:
+        type: string
+      userId:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - userId
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@story-craft.com
+    name: API Support
+    url: http://www.story-craft.com/support
+  description: API сервиса управления профилями пользователей Story Craft
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Story Craft User Profile Service API
+  version: "1.0"
+paths:
+  /profiles:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый профиль пользователя на основе полученных данных
+      parameters:
+      - description: Данные профиля
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/InputProfile'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Созданный профиль
+          schema:
+            $ref: '#/definitions/InputProfile'
+        "400":
+          description: Ошибка в запросе
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Конфликт при создании профиля
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Создать профиль пользователя
+      tags:
+      - profiles
+  /profiles/{user_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет профиль пользователя с указанным идентификатором
+      parameters:
+      - description: Идентификатор пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Профиль успешно удален
+        "400":
+          description: Ошибка в запросе
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Профиль не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Удалить профиль пользователя
+      tags:
+      - profiles
+    get:
+      consumes:
+      - application/json
+      description: Возвращает профиль пользователя по указанному идентификатору
+      parameters:
+      - description: Идентификатор пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Профиль пользователя
+          schema:
+            $ref: '#/definitions/Profile'
+        "400":
+          description: Ошибка в запросе
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Профиль не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Получить профиль пользователя
+      tags:
+      - profiles
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет существующий профиль пользователя
+      parameters:
+      - description: Идентификатор пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Обновленный профиль
+          schema:
+            $ref: '#/definitions/UpdateProfile'
+        "400":
+          description: Ошибка в запросе
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Профиль не найден
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Конфликт при обновлении профиля
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Обновить профиль пользователя
+      tags:
+      - profiles
+swagger: "2.0"
