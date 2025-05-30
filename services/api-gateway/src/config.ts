@@ -77,7 +77,7 @@ export const serviceConfig = validateServiceConfig({
         upstream: `http://${getServiceHost('user-profile-service')}:${
             env.PORT_USER_SERVICE
         }`,
-        swaggerEnabled: false,
+        swaggerEnabled: true,
     },
     story: {
         prefix: '/stories',

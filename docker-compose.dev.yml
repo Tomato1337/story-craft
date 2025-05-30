@@ -54,6 +54,7 @@ services:
         - ./services/auth-service/prisma:/app/prisma
     environment:
       - PORT=${AUTH_SERVICE_PORT}
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT}
       - NODE_ENV=dev
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/storycraft_auth
     develop:
